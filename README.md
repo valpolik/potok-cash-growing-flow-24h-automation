@@ -3,26 +3,28 @@ potok-cash-growing-deposit-24h-automation
 https://potok.cash/cabinet
 
 
-Install this file to Tampermonkey:
+Install this file in your Tampermonkey browser extension:
 https://github.com/valpolik/potok-cash-growing-deposit-24h-automation/raw/refs/heads/main/potok-cash-growing-deposit-24h-automation.user.js
 
 Keep your window and tab with potok cash always opened 24/7.
 
+---
 
-Tamprmonkey for Edge:
+
+Tampermonkey for Edge:
 https://microsoftedge.microsoft.com/addons/detail/iikmkjmpaadaobahmlepeloendndfphd
 
-Tamprmonkey for Edge Mobile:
+Tampermonkey for Edge Mobile:
 https://www.tampermonkey.net/qr/e
 
-Tamprmonkey for Chrome:
+Tampermonkey for Chrome:
 https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo
 
-Tamprmonkey for Firefox:
+Tampermonkey for Firefox:
 https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/
 
-Tamprmonkey for Safari:
+Tampermonkey for Safari:
 https://apps.apple.com/app/tampermonkey/id6738342400
 
-Tamprmonkey for Opera:
+Tampermonkey for Opera:
 https://addons.opera.com/en/extensions/details/tampermonkey-beta/
