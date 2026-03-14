@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Potok Deposit Bonus Keeper (heartbeat + логи)
+// @name         Potok Cash Bonus Keeper
 // @namespace    https://potok.cash/cabinet
 // @version      8.0
 // @description  Точное время бонуса с координацией вкладок через heartbeat
