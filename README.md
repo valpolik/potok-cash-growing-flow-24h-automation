@@ -32,6 +32,9 @@ https://addons.opera.com/en/extensions/details/tampermonkey-beta/
 
 ---
 
+Original author:
+https://github.com/valpolik
+
 ## Donate
 
 **USDT (TRC20):**
