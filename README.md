@@ -35,6 +35,9 @@ https://addons.opera.com/en/extensions/details/tampermonkey-beta/
 Original author:
 https://github.com/valpolik
 
+Ask for help:
+https://t.me/valpolik
+
 ---
 
 ## Donate
