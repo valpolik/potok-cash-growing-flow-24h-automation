@@ -1,15 +1,14 @@
-# potok-cash-growing-deposit-24h-automation
-potok-cash-growing-deposit-24h-automation
+## potok-cash-growing-flow-24h-automation
+potok-cash-growing-flow-24h-automation
+
 https://potok.cash/cabinet
 
-
-Install this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is egough for install):
+**Install** this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is enough for install):
 https://github.com/valpolik/potok-cash-growing-deposit-24h-automation/raw/refs/heads/main/potok-cash-growing-deposit-24h-automation.user.js
 
-Keep your window and tab with potok cash always opened 24/7.
+Keep your window and tab with potok cash growing flow always active and opened 24/7.
 
 ---
-
 
 Tampermonkey for Edge:
 https://microsoftedge.microsoft.com/addons/detail/iikmkjmpaadaobahmlepeloendndfphd
@@ -28,3 +27,15 @@ https://apps.apple.com/app/tampermonkey/id6738342400
 
 Tampermonkey for Opera:
 https://addons.opera.com/en/extensions/details/tampermonkey-beta/
+
+---
+
+## Donate
+
+**USDT (TRC20):**
+TFxogW8ej5zQbANNG1e2eeEaPbsTr9hhTZ
+
+**Bybit Pay (any currency):**
+- Go to **Finance** → **Bybit Pay** → **Send**
+- UID: `21102550`
+- Accepts: USDT, BTC, ETH, LTC, and more
