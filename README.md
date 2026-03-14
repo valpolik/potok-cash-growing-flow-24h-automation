@@ -4,7 +4,6 @@ potok-cash-growing-flow-24h-automation
 https://potok.cash/cabinet
 
 **Install** this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is enough for install):
-
 https://github.com/valpolik/potok-cash-growing-flow-24h-automation/raw/refs/heads/main/potok-cash-growing-flow-24h-automation.user.js
 
 
