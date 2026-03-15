@@ -5,12 +5,12 @@ https://potok.cash/cabinet (or my ref link: https://potok.cash/ref/LM-lwbqq/cabi
 
 ---
 
-**Install** this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is enough for install):
+- **Install** this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is enough for install):
 https://github.com/valpolik/potok-cash-growing-flow-24h-automation/raw/refs/heads/main/potok-cash-growing-flow-24h-automation.user.js
 
 
 
-Keep your window and tab with potok cash growing flow always active and opened 24/7.
+- Keep your window and tab with potok cash growing flow always active and opened 24/7.
 
 ---
 
