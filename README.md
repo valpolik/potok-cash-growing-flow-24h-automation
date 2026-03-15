@@ -10,7 +10,7 @@ https://github.com/valpolik/potok-cash-growing-flow-24h-automation/raw/refs/head
 
 
 
-- Keep your window and tab with potok cash growing flow always active and opened 24/7.
+- Keep your window and tab with potok cash growing flow always active and opened 24/7. (Or add website into awake list in your web-browser settings like "Always keep these sites active")
 
 ---
 
