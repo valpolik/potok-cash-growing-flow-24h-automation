@@ -3,6 +3,8 @@ potok-cash-growing-flow-24h-automation
 
 https://potok.cash/cabinet (or my ref link: https://potok.cash/ref/LM-lwbqq/cabinet)
 
+This script has a random delay 1.0 to 2.0 minutes for bonus request.
+
 ---
 
 - **Install** this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is enough for install):
