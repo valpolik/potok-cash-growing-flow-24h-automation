@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Potok Cash Bonus Keeper
 // @namespace    https://potok.cash/cabinet
-// @version      8.0
+// @version      9.1
 // @description  Точное время бонуса с координацией вкладок через heartbeat
 // @author       You
 // @match        https://potok.cash/cabinet
@@ -12,43 +12,28 @@
 (function() {
     'use strict';
 
-    // --- Константы ---
-    const HEARTBEAT_INTERVAL = 5000;        // лидер шлёт heartbeat каждые 5 сек
-    const LEADER_TIMEOUT = 30000;           // если 30 сек нет heartbeat, считаем лидера мёртвым
-    const ELECTION_DELAY = 2000;             // задержка перед выборами, чтобы избежать одновременных
-    const LEADER_CHECK_TIMEOUT = 2000;       // сколько ждать ответа на LEADER_CHECK
-
-    // --- Глобальные переменные вкладки ---
-    const tabId = Math.random().toString(36).substring(2) + Date.now(); // уникальный ID вкладки
-    let isLeader = false;
-    let currentTimer = null;                  // таймер бонуса
-    let heartbeatInterval = null;              // интервал отправки heartbeat (если лидер)
-    let heartbeatWatchdog = null;              // таймер, следящий за heartbeat (если не лидер)
-    let lastHeartbeatTime = 0;                 // время последнего heartbeat от лидера
+    // --- Уникальный идентификатор текущей вкладки ---
+    const tabId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    console.log(`🆔 Вкладка инициализирована, ID: ${tabId}`);
 
     // --- Канал связи ---
     const channel = new BroadcastChannel('potok-bonus-channel');
 
-    // --- Логирование с префиксом вкладки ---
-    function log(level, message, ...args) {
-        const prefix = `[Tab ${tabId.slice(0,4)}]`;
-        const fullMsg = `${prefix} ${message}`;
-        switch(level) {
-            case 'info': console.log(fullMsg, ...args); break;
-            case 'warn': console.warn(fullMsg, ...args); break;
-            case 'error': console.error(fullMsg, ...args); break;
-            default: console.log(fullMsg, ...args);
-        }
-    }
+    // --- Состояние ---
+    let isLeader = false;
+    let currentTimer = null;
+    let heartbeatInterval = null;
+    let lastHeartbeat = Date.now();
+    let recognizedLeaderId = null;
 
-    // --- Получение uid из глобальных переменных ---
+    // --- Получение uid ---
     function getUid() {
         if (typeof window.$uid !== 'undefined') return window.$uid;
         if (typeof window.$myuid !== 'undefined') return window.$myuid;
         return null;
     }
 
-    // --- Запрос данных с сервера ---
+    // --- Получение данных с сервера ---
     async function fetchBonusData(uid) {
         const response = await fetch("https://potok.cash/member/getmemberdeposits", {
             method: "POST",
@@ -61,7 +46,7 @@
             return {
                 next: data.date_next * 1000,
                 serverNow: data.date * 1000,
-                delayMs: (data.date_next - data.date) * 1000
+                delayMs: (data.date_next - data.date) * 1000 + 2000
             };
         }
         throw new Error("Не удалось получить date_next/date");
@@ -69,7 +54,6 @@
 
     // --- Отправка бонуса ---
     async function sendBonusRequest() {
-        log('info', "Отправка бонусного запроса...");
         const response = await fetch("https://potok.cash/site/SetUserDepositBonus", {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -77,9 +61,18 @@
             credentials: "include"
         });
         const data = await response.json();
-        log('info', "✅ Бонус отправлен, ответ:", data);
-        channel.postMessage({ type: 'BONUS_SENT', tabId, time: Date.now() });
+        console.log("✅ Бонус отправлен, ответ сервера:", data);
+        channel.postMessage({ type: 'BONUS_SENT', time: Date.now(), tabId });
         return data;
+    }
+
+    // --- Завершение цикла: пауза 1 мин и перезагрузка ---
+    function finishCycle() {
+        console.log("⏸️ Ожидание 60 секунд перед перезагрузкой страницы...");
+        setTimeout(() => {
+            console.log("🔄 Перезагрузка страницы...");
+            location.reload();
+        }, 60000);
     }
 
     // --- Основной цикл лидера ---
@@ -89,224 +82,193 @@
         try {
             const uid = getUid();
             if (!uid) {
-                log('warn', "UID не найден, повтор через 60 сек");
-                currentTimer = setTimeout(leaderLoop, 60000);
+                console.warn("⚠️ UID не найден, повтор через 60 сек");
+                setTimeout(leaderLoop, 60000);
                 return;
             }
 
             const { delayMs } = await fetchBonusData(uid);
+            console.log(`⏳ Точная задержка до отправки бонуса: ${Math.round(delayMs/1000)} сек (с учётом +2 сек)`);
 
-            if (delayMs > 0) {
-                log('info', `⏳ Точная задержка по серверу: ${Math.round(delayMs/1000)} сек (${new Date(Date.now() + delayMs).toLocaleTimeString()})`);
-                currentTimer = setTimeout(async () => {
-                    try {
-                        await sendBonusRequest();
-                        leaderLoop(); // следующий цикл
-                    } catch (e) {
-                        log('error', "Ошибка отправки бонуса:", e);
-                        currentTimer = setTimeout(leaderLoop, 60000);
-                    }
-                }, delayMs);
-            } else {
-                log('warn', "⚠️ Время бонуса уже наступило, отправляем сейчас");
-                await sendBonusRequest();
-                leaderLoop();
-            }
+            currentTimer = setTimeout(async () => {
+                try {
+                    await sendBonusRequest();
+                } catch (error) {
+                    console.error("❌ Ошибка при отправке бонуса:", error);
+                } finally {
+                    finishCycle();
+                }
+            }, delayMs);
+
         } catch (error) {
-            log('error', "Ошибка в цикле лидера:", error);
-            currentTimer = setTimeout(leaderLoop, 60000);
+            console.error("❌ Ошибка в leaderLoop:", error);
+            finishCycle();
         }
     }
 
-    // --- Запуск heartbeat (если лидер) ---
+    // --- Heartbeat отправка (только лидер) ---
     function startHeartbeat() {
         if (heartbeatInterval) clearInterval(heartbeatInterval);
         heartbeatInterval = setInterval(() => {
             if (isLeader) {
-                channel.postMessage({ type: 'LEADER_HEARTBEAT', tabId, time: Date.now() });
-                log('info', "💓 Heartbeat отправлен");
-            } else {
-                // Если перестали быть лидером, остановим heartbeat
-                clearInterval(heartbeatInterval);
-                heartbeatInterval = null;
+                console.log(`💓 Отправка heartbeat от лидера ${tabId}`);
+                channel.postMessage({ type: 'HEARTBEAT', time: Date.now(), tabId });
             }
-        }, HEARTBEAT_INTERVAL);
+        }, 5000);
     }
 
-    // --- Остановка heartbeat ---
-    function stopHeartbeat() {
-        if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
-            heartbeatInterval = null;
-        }
-    }
-
-    // --- Запуск watchdog (слежка за лидером) ---
-    function startWatchdog() {
-        if (heartbeatWatchdog) clearTimeout(heartbeatWatchdog);
-        heartbeatWatchdog = setTimeout(() => {
-            if (!isLeader) {
-                log('warn', "💔 Heartbeat от лидера пропал, инициируем выборы");
-                electLeader(); // запускаем процедуру выборов
-            }
-        }, LEADER_TIMEOUT);
-    }
-
-    // --- Сброс watchdog ---
-    function resetWatchdog() {
-        if (!isLeader) {
-            if (heartbeatWatchdog) clearTimeout(heartbeatWatchdog);
-            startWatchdog();
-        }
-    }
-
-    // --- Становимся лидером ---
+    // --- Стать лидером ---
     function becomeLeader() {
         if (isLeader) return;
         isLeader = true;
-        log('info', "👑 Эта вкладка стала главной (ID: " + tabId + ")");
-        channel.postMessage({ type: 'NEW_LEADER', tabId, time: Date.now() });
-
-        // Останавливаем watchdog (мы теперь лидер, следить не надо)
-        if (heartbeatWatchdog) clearTimeout(heartbeatWatchdog);
-
-        // Запускаем heartbeat
+        recognizedLeaderId = tabId;
+        console.log(`👑 Вкладка ${tabId} стала главной`);
+        channel.postMessage({ type: 'NEW_LEADER', time: Date.now(), tabId });
         startHeartbeat();
-
-        // Запускаем цикл бонуса
         leaderLoop();
     }
 
-    // --- Отказ от лидерства ---
+    // --- Отказаться от лидерства ---
     function resignLeadership() {
         if (isLeader) {
-            log('info', "👋 Передача лидерства другой вкладке");
+            console.log(`👋 Вкладка ${tabId} передаёт лидерство`);
             isLeader = false;
-            stopHeartbeat();
+            recognizedLeaderId = null;
             if (currentTimer) {
                 clearTimeout(currentTimer);
                 currentTimer = null;
             }
-            // Запускаем watchdog, чтобы следить за новым лидером
-            lastHeartbeatTime = 0;
-            startWatchdog();
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
         }
     }
 
-    // --- Выборы лидера (если нет heartbeat или при старте) ---
+    // --- Выборы лидера ---
     function electLeader() {
-        log('info', "Начинаем выборы нового лидера...");
-
-        // Случайная задержка, чтобы избежать одновременных выборов
-        const delay = Math.random() * ELECTION_DELAY;
+        const randomDelay = Math.random() * 3000;
         setTimeout(() => {
-            // Перед тем как стать лидером, проверим, не появился ли уже лидер
-            // Отправляем запрос LEADER_CHECK
-            channel.postMessage({ type: 'LEADER_CHECK', tabId, time: Date.now() });
+            console.log(`🔍 Вкладка ${tabId} ищет лидера...`);
+            channel.postMessage({ type: 'LEADER_CHECK', time: Date.now(), tabId });
 
             const checkTimeout = setTimeout(() => {
-                // Никто не ответил — становимся лидером
+                console.log(`⏳ Таймаут, никто не ответил – становимся лидером`);
                 becomeLeader();
-            }, LEADER_CHECK_TIMEOUT);
+            }, 2000);
 
             const responseHandler = (event) => {
-                const msg = event.data;
-                if (msg.type === 'LEADER_ALIVE') {
-                    // Есть лидер, отменяем попытку
+                if (event.data.type === 'LEADER_ALIVE') {
                     clearTimeout(checkTimeout);
                     channel.removeEventListener('message', responseHandler);
-                    log('info', `Лидер уже есть (${msg.tabId}), остаёмся в режиме ожидания`);
-                    // Обновим lastHeartbeatTime, чтобы watchdog не сработал раньше времени
-                    lastHeartbeatTime = msg.time;
-                    resetWatchdog();
+                    recognizedLeaderId = event.data.tabId;
+                    lastHeartbeat = Date.now();
+                    console.log(`📻 Получен ответ от лидера ${recognizedLeaderId}, остаёмся в режиме ожидания`);
                 }
             };
             channel.addEventListener('message', responseHandler);
-        }, delay);
+        }, randomDelay);
     }
 
     // --- Обработка входящих сообщений ---
     channel.onmessage = (event) => {
         const msg = event.data;
 
-        switch (msg.type) {
-            case 'LEADER_HEARTBEAT':
-                // Получен heartbeat от лидера
-                lastHeartbeatTime = msg.time;
-                if (!isLeader) {
-                    log('info', `💓 Heartbeat от лидера ${msg.tabId.slice(0,4)}`);
-                    resetWatchdog(); // сбрасываем таймер отсутствия heartbeat
-                }
-                break;
-
-            case 'NEW_LEADER':
-                // Кто-то объявил себя лидером
-                if (!isLeader) {
-                    log('info', `Новый лидер объявлен: ${msg.tabId.slice(0,4)}`);
-                    lastHeartbeatTime = msg.time;
-                    resetWatchdog();
+        // Heartbeat от лидера
+        if (msg.type === 'HEARTBEAT') {
+            if (!isLeader) {
+                // Логируем получение heartbeat всегда
+                console.log(`💗 Получен heartbeat от лидера ${msg.tabId}`);
+                if (recognizedLeaderId === null) {
+                    recognizedLeaderId = msg.tabId;
+                    lastHeartbeat = msg.time;
+                } else if (recognizedLeaderId === msg.tabId) {
+                    lastHeartbeat = msg.time;
                 } else {
-                    // Конфликт: мы тоже лидер. Сравниваем ID и время.
-                    if (msg.tabId !== tabId) {
-                        log('warn', `Конфликт лидеров: наш ${tabId.slice(0,4)} против ${msg.tabId.slice(0,4)}`);
-                        // Уступаем, если чужой ID меньше (или по времени объявления)
-                        if (msg.tabId < tabId) {
-                            log('info', "Уступаем лидерство (чужой ID меньше)");
-                            resignLeadership();
-                            lastHeartbeatTime = msg.time;
-                            resetWatchdog();
-                        } else {
-                            log('info', "Остаёмся лидером (наш ID меньше)");
-                            // Отправляем свой heartbeat, чтобы перебить
-                            channel.postMessage({ type: 'LEADER_HEARTBEAT', tabId, time: Date.now() });
-                        }
-                    }
+                    // Смена лидера
+                    console.log(`🔄 Смена лидера: ${recognizedLeaderId} -> ${msg.tabId}`);
+                    recognizedLeaderId = msg.tabId;
+                    lastHeartbeat = msg.time;
                 }
-                break;
+            }
+            return;
+        }
 
-            case 'LEADER_CHECK':
-                // Запрос от другой вкладки: есть ли лидер?
-                if (isLeader) {
-                    channel.postMessage({ type: 'LEADER_ALIVE', tabId, time: Date.now() });
+        // Новый лидер
+        if (msg.type === 'NEW_LEADER') {
+            if (isLeader) {
+                // Конфликт
+                if (msg.time > (window._myLeaderTime || 0)) {
+                    console.log(`⚔️ Конфликт: новый лидер ${msg.tabId} объявился позже, уступаем`);
+                    resignLeadership();
+                } else if (msg.time === (window._myLeaderTime || 0) && msg.tabId < tabId) {
+                    console.log(`⚔️ Конфликт: одинаковое время, но ID ${msg.tabId} меньше, уступаем`);
+                    resignLeadership();
+                } else {
+                    console.log(`⚔️ Конфликт: остаёмся лидером`);
                 }
-                break;
+            } else {
+                recognizedLeaderId = msg.tabId;
+                lastHeartbeat = Date.now();
+                console.log(`📢 Новый лидер объявлен: ${recognizedLeaderId}`);
+            }
+            return;
+        }
 
-            case 'LEADER_ALIVE':
-                // Ответ на LEADER_CHECK — обрабатывается выше в electLeader
-                break;
+        // Бонус отправлен
+        if (msg.type === 'BONUS_SENT') {
+            if (isLeader) {
+                console.log('📻 Бонус уже отправлен в другой вкладке, перепланируем');
+                if (currentTimer) clearTimeout(currentTimer);
+                leaderLoop();
+            }
+            return;
+        }
 
-            case 'BONUS_SENT':
-                if (isLeader && msg.tabId !== tabId) {
-                    log('info', 'Бонус отправлен в другой вкладке, перепланируем');
-                    if (currentTimer) clearTimeout(currentTimer);
-                    leaderLoop(); // запросим новый date_next
-                }
-                break;
+        // Проверка лидера
+        if (msg.type === 'LEADER_CHECK') {
+            if (isLeader) {
+                console.log(`📡 Ответ на проверку лидерства от ${msg.tabId}`);
+                channel.postMessage({ type: 'LEADER_ALIVE', time: Date.now(), tabId });
+            }
+            return;
+        }
+
+        // Ответ на проверку (обрабатывается в electLeader, но для логирования добавим)
+        if (msg.type === 'LEADER_ALIVE') {
+            // Этот ответ обрабатывается в electLeader через обработчик, но если он пришёл не вовремя – проигнорируем
+            // Можно добавить логирование для отладки
+            console.log(`📨 Получен LEADER_ALIVE от ${msg.tabId} (вне выборов)`);
+            return;
         }
     };
 
-    // --- Инициализация после загрузки страницы ---
+    // --- Мониторинг здоровья лидера (для не-лидеров) ---
+    setInterval(() => {
+        if (!isLeader && recognizedLeaderId !== null) {
+            const timeSinceLastHeartbeat = Date.now() - lastHeartbeat;
+            if (timeSinceLastHeartbeat > 30000) {
+                console.log(`💔 Сердцебиение лидера ${recognizedLeaderId} пропало (прошло ${Math.round(timeSinceLastHeartbeat/1000)} сек), запускаем выборы`);
+                recognizedLeaderId = null;
+                electLeader();
+            }
+        }
+    }, 15000);
+
+    // --- Инициализация после полной загрузки ---
     function initialize() {
-        log('info', "🚀 Скрипт запущен, ID вкладки:", tabId);
+        console.log(`🚀 Скрипт запущен во вкладке ${tabId}`);
+        window._myLeaderTime = Date.now();
 
-        // Сразу запускаем watchdog (будем ждать heartbeat)
-        lastHeartbeatTime = 0;
-        startWatchdog();
-
-        // Инициируем выборы, чтобы проверить, есть ли лидер
         electLeader();
 
-        // При закрытии вкладки-лидера оповещаем
         window.addEventListener('beforeunload', () => {
             if (isLeader) {
-                log('info', "Вкладка закрывается, оповещаем остальных");
-                channel.postMessage({ type: 'NEW_LEADER', tabId, time: Date.now() });
-                stopHeartbeat();
+                channel.postMessage({ type: 'NEW_LEADER', time: Date.now(), tabId });
             }
         });
     }
 
-    // Ждём полной загрузки страницы
     if (document.readyState === 'complete') {
         initialize();
     } else {
