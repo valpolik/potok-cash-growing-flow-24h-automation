@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Potok Cash Bonus Keeper
 // @namespace    https://potok.cash/cabinet
-// @version      9.1
+// @version      10.0
 // @description  Точное время бонуса с координацией вкладок через heartbeat
 // @author       You
 // @match        https://potok.cash/cabinet
@@ -44,9 +44,9 @@
         const data = await response.json();
         if (data && data.date_next && data.date) {
             return {
-                next: data.date_next * 1000,
-                serverNow: data.date * 1000,
-                delayMs: (data.date_next - data.date) * 1000 + 2000
+                next: data.date_next * 1000,      // время следующего бонуса в мс
+                serverNow: data.date * 1000,       // текущее серверное время в мс
+                delayMs: (data.date_next - data.date) * 1000 // базовая задержка (может быть отрицательной)
             };
         }
         throw new Error("Не удалось получить date_next/date");
@@ -87,8 +87,19 @@
                 return;
             }
 
-            const { delayMs } = await fetchBonusData(uid);
-            console.log(`⏳ Точная задержка до отправки бонуса: ${Math.round(delayMs/1000)} сек (с учётом +2 сек)`);
+            const { next, serverNow } = await fetchBonusData(uid);
+            const delayBase = next - serverNow; // сколько осталось до наступления next (может быть отрицательным)
+
+            // Случайная добавка 60-120 секунд
+            const randomExtra = 60000 + Math.random() * 60000; // от 60000 до 120000 мс
+            let totalDelay;
+            if (delayBase > 0) {
+                totalDelay = delayBase + randomExtra;
+                console.log(`⏳ Базовая задержка до date_next: ${Math.round(delayBase/1000)} сек, случайная добавка: ${Math.round(randomExtra/1000)} сек, всего: ${Math.round(totalDelay/1000)} сек`);
+            } else {
+                totalDelay = randomExtra;
+                console.log(`⏳ Время date_next уже наступило, отправка через случайные ${Math.round(randomExtra/1000)} сек`);
+            }
 
             currentTimer = setTimeout(async () => {
                 try {
@@ -98,7 +109,7 @@
                 } finally {
                     finishCycle();
                 }
-            }, delayMs);
+            }, totalDelay);
 
         } catch (error) {
             console.error("❌ Ошибка в leaderLoop:", error);
@@ -177,7 +188,6 @@
         // Heartbeat от лидера
         if (msg.type === 'HEARTBEAT') {
             if (!isLeader) {
-                // Логируем получение heartbeat всегда
                 console.log(`💗 Получен heartbeat от лидера ${msg.tabId}`);
                 if (recognizedLeaderId === null) {
                     recognizedLeaderId = msg.tabId;
@@ -185,7 +195,6 @@
                 } else if (recognizedLeaderId === msg.tabId) {
                     lastHeartbeat = msg.time;
                 } else {
-                    // Смена лидера
                     console.log(`🔄 Смена лидера: ${recognizedLeaderId} -> ${msg.tabId}`);
                     recognizedLeaderId = msg.tabId;
                     lastHeartbeat = msg.time;
@@ -234,10 +243,8 @@
             return;
         }
 
-        // Ответ на проверку (обрабатывается в electLeader, но для логирования добавим)
+        // Ответ на проверку (для отладки)
         if (msg.type === 'LEADER_ALIVE') {
-            // Этот ответ обрабатывается в electLeader через обработчик, но если он пришёл не вовремя – проигнорируем
-            // Можно добавить логирование для отладки
             console.log(`📨 Получен LEADER_ALIVE от ${msg.tabId} (вне выборов)`);
             return;
         }
