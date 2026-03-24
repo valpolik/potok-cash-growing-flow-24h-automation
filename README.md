@@ -9,7 +9,7 @@ This script knows the time, when the timer will be over, and when the bonus butt
 
 ---
 
-- **Install** [this file](potok-cash-growing-flow-24h-automation.user.js) ("potok-cash-growing-flow-24h-automation.user.js") in your [Tampermonkey](http://tampermonkey.net) extension for your web-browser. (With Tampermonkey installed, often just click on [**this link**](https://github.com/valpolik/potok-cash-growing-flow-24h-automation/raw/refs/heads/main/potok-cash-growing-flow-24h-automation.user.js) is enough for install).
+- **Install** [this file](potok-cash-growing-flow-24h-automation.user.js) ("potok-cash-growing-flow-24h-automation.user.js") in your [Tampermonkey](http://tampermonkey.net) extension for your web-browser. (With Tampermonkey installed, often just clicking on [**this link**](https://github.com/valpolik/potok-cash-growing-flow-24h-automation/raw/refs/heads/main/potok-cash-growing-flow-24h-automation.user.js) is enough for install).
 
 - Keep your window and tab with potok cash growing flow always active and opened 24/7. (Or add website into awake list in your web-browser settings like "Always keep these sites active").
 
