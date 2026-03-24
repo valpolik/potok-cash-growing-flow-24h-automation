@@ -3,7 +3,7 @@ potok-cash-growing-flow-24h-automation
 
 https://potok.cash/cabinet (or my ref link: https://potok.cash/ref/LM-lwbqq/cabinet)
 
-This script has a random delay 1.0 to 2.0 minutes for bonus request.
+This script has a random delay 1.0 to 2.0 minutes before bonus request. And it reloads page with 60 seconds delay after bonus request.
 
 ---
 
