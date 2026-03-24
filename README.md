@@ -7,12 +7,9 @@ This script has a random delay 1.0 to 2.0 minutes before bonus request. And it r
 
 ---
 
-- **Install** this file in your Tampermonkey extension for your web-browser (With Tampermonkey installed, often just click on this link is enough for install):
-https://github.com/valpolik/potok-cash-growing-flow-24h-automation/raw/refs/heads/main/potok-cash-growing-flow-24h-automation.user.js
+- **Install** [this file](potok-cash-growing-flow-24h-automation.user.js) ("potok-cash-growing-flow-24h-automation.user.js") in your [Tampermonkey](http://tampermonkey.net) extension for your web-browser. (With Tampermonkey installed, often just click on this link is enough for install).
 
-
-
-- Keep your window and tab with potok cash growing flow always active and opened 24/7. (Or add website into awake list in your web-browser settings like "Always keep these sites active")
+- Keep your window and tab with potok cash growing flow always active and opened 24/7. (Or add website into awake list in your web-browser settings like "Always keep these sites active").
 
 - Sometimes, check for updates on **this** page (https://github.com/valpolik/potok-cash-growing-flow-24h-automation).
 
@@ -35,6 +32,9 @@ https://apps.apple.com/app/tampermonkey/id6738342400
 
 Tampermonkey for Opera:
 https://addons.opera.com/en/extensions/details/tampermonkey-beta/
+
+Enabling "developer mode" for Tampermonkey extension in case of some problems:
+https://www.tampermonkey.net/faq.php#Q209
 
 ---
 
