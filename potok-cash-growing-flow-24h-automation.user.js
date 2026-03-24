@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Potok Cash Bonus Keeper
 // @namespace    https://potok.cash/cabinet
-// @version      10.0
-// @description  Точное время бонуса с координацией вкладок через heartbeat
+// @version      20260324140601
+// @description  Automation for pressing bonus button each 24 hours
 // @author       You
 // @match        https://potok.cash/cabinet
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=potok.cash
