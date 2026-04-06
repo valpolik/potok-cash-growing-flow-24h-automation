@@ -5,7 +5,7 @@ Automation for pressing bonus button each 24 hours.
 
 https://potok.cash/cabinet (or my ref link: https://potok.cash/ref/LM-lwbqq/cabinet)
 
-**Algorithm details:** This script knows the time when the timer will be over, and when the bonus button will be available for pressing. This script has a random delay 1.0 to 2.0 minutes before bonus request. And it reloads page with 60 seconds delay after each bonus request. There are no exceptions for sundays, because at sundays the timer is over and the bonus button is available for pressing (At sundays, bonus button will be pressed each 2.0 to 3.0 minutes). When the timer is not over, this script is waiting until the timer is over.
+**Algorithm details:** This script knows the time when the timer will be over, and when the bonus button will be available for pressing. This script has a random delay 1.0 to 2.0 minutes before bonus request. And it reloads page after each bonus request. There are no exceptions for sundays, because at sundays the timer is over and the bonus button is available for pressing (At sundays, bonus button will be pressed each 1.0 to 2.0 minutes). When the timer is not over, this script is waiting until the timer is over.
 
 ---
 
