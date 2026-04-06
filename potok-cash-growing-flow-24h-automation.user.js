@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Potok Cash Bonus Keeper
 // @namespace    https://potok.cash/cabinet
-// @version      20260324140601
+// @version      20260406131910
 // @description  Automation for pressing bonus button each 24 hours
 // @author       You
 // @match        https://potok.cash/cabinet
@@ -22,6 +22,7 @@
     // --- Состояние ---
     let isLeader = false;
     let currentTimer = null;
+    let retryTimer = null;
     let heartbeatInterval = null;
     let lastHeartbeat = Date.now();
     let recognizedLeaderId = null;
@@ -44,9 +45,9 @@
         const data = await response.json();
         if (data && data.date_next && data.date) {
             return {
-                next: data.date_next * 1000,      // время следующего бонуса в мс
-                serverNow: data.date * 1000,       // текущее серверное время в мс
-                delayMs: (data.date_next - data.date) * 1000 // базовая задержка (может быть отрицательной)
+                next: data.date_next * 1000,
+                serverNow: data.date * 1000,
+                delayMs: (data.date_next - data.date) * 1000
             };
         }
         throw new Error("Не удалось получить date_next/date");
@@ -61,18 +62,39 @@
             credentials: "include"
         });
         const data = await response.json();
-        console.log("✅ Бонус отправлен, ответ сервера:", data);
+        console.log("📨 Ответ сервера на отправку бонуса:", data);
         channel.postMessage({ type: 'BONUS_SENT', time: Date.now(), tabId });
         return data;
     }
 
-    // --- Завершение цикла: пауза 1 мин и перезагрузка ---
+    // --- Завершение цикла: перезагрузка БЕЗ задержки (при наличии status) ---
     function finishCycle() {
-        console.log("⏸️ Ожидание 60 секунд перед перезагрузкой страницы...");
-        setTimeout(() => {
-            console.log("🔄 Перезагрузка страницы...");
-            location.reload();
+        console.log("✅ Обнаружен ключ 'status' – перезагрузка страницы немедленно...");
+        location.reload();
+    }
+
+    // --- Повторная попытка (если нет status) – задержка 60 секунд ---
+    function scheduleRetry() {
+        if (retryTimer) clearTimeout(retryTimer);
+        console.log("🔄 Ключ 'status' отсутствует – повторный запрос через 60 секунд...");
+        retryTimer = setTimeout(async () => {
+            try {
+                const data = await sendBonusRequest();
+                handleBonusResponse(data);
+            } catch (error) {
+                console.error("❌ Ошибка при повторном запросе бонуса:", error);
+                scheduleRetry();   // ошибка сети – тоже повторяем через 60 секунд
+            }
         }, 60000);
+    }
+
+    // --- Обработка ответа: есть status → перезагрузка, иначе → повтор через 60 секунд ---
+    function handleBonusResponse(data) {
+        if (data && data.hasOwnProperty('status')) {
+            finishCycle();
+        } else {
+            scheduleRetry();
+        }
     }
 
     // --- Основной цикл лидера ---
@@ -88,10 +110,8 @@
             }
 
             const { next, serverNow } = await fetchBonusData(uid);
-            const delayBase = next - serverNow; // сколько осталось до наступления next (может быть отрицательным)
-
-            // Случайная добавка 60-120 секунд
-            const randomExtra = 60000 + Math.random() * 60000; // от 60000 до 120000 мс
+            const delayBase = next - serverNow;
+            const randomExtra = 60000 + Math.random() * 60000;
             let totalDelay;
             if (delayBase > 0) {
                 totalDelay = delayBase + randomExtra;
@@ -103,17 +123,17 @@
 
             currentTimer = setTimeout(async () => {
                 try {
-                    await sendBonusRequest();
+                    const data = await sendBonusRequest();
+                    handleBonusResponse(data);
                 } catch (error) {
                     console.error("❌ Ошибка при отправке бонуса:", error);
-                } finally {
-                    finishCycle();
+                    scheduleRetry();
                 }
             }, totalDelay);
 
         } catch (error) {
             console.error("❌ Ошибка в leaderLoop:", error);
-            finishCycle();
+            finishCycle();   // критическая ошибка – перезагрузка немедленно
         }
     }
 
@@ -148,6 +168,10 @@
             if (currentTimer) {
                 clearTimeout(currentTimer);
                 currentTimer = null;
+            }
+            if (retryTimer) {
+                clearTimeout(retryTimer);
+                retryTimer = null;
             }
             if (heartbeatInterval) {
                 clearInterval(heartbeatInterval);
@@ -185,7 +209,6 @@
     channel.onmessage = (event) => {
         const msg = event.data;
 
-        // Heartbeat от лидера
         if (msg.type === 'HEARTBEAT') {
             if (!isLeader) {
                 console.log(`💗 Получен heartbeat от лидера ${msg.tabId}`);
@@ -203,10 +226,8 @@
             return;
         }
 
-        // Новый лидер
         if (msg.type === 'NEW_LEADER') {
             if (isLeader) {
-                // Конфликт
                 if (msg.time > (window._myLeaderTime || 0)) {
                     console.log(`⚔️ Конфликт: новый лидер ${msg.tabId} объявился позже, уступаем`);
                     resignLeadership();
@@ -224,7 +245,6 @@
             return;
         }
 
-        // Бонус отправлен
         if (msg.type === 'BONUS_SENT') {
             if (isLeader) {
                 console.log('📻 Бонус уже отправлен в другой вкладке, перепланируем');
@@ -234,7 +254,6 @@
             return;
         }
 
-        // Проверка лидера
         if (msg.type === 'LEADER_CHECK') {
             if (isLeader) {
                 console.log(`📡 Ответ на проверку лидерства от ${msg.tabId}`);
@@ -243,7 +262,6 @@
             return;
         }
 
-        // Ответ на проверку (для отладки)
         if (msg.type === 'LEADER_ALIVE') {
             console.log(`📨 Получен LEADER_ALIVE от ${msg.tabId} (вне выборов)`);
             return;
@@ -266,7 +284,6 @@
     function initialize() {
         console.log(`🚀 Скрипт запущен во вкладке ${tabId}`);
         window._myLeaderTime = Date.now();
-
         electLeader();
 
         window.addEventListener('beforeunload', () => {
