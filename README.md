@@ -48,6 +48,15 @@ https://t.me/valpolik
 
 ![](https://komarev.com/ghpvc/?username=potok-cash-growing-flow-24h-automation&label=Repo+views)
 
+
+
+## Related user-scripts
+
+https://github.com/valpolik/potok-cash-growing-flow-24h-automation
+
+https://github.com/valpolik/potok-cash-newbie-flow-24h-automation
+
+
 ---
 
 ## Donate
