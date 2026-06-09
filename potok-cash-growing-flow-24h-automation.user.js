@@ -41,7 +41,7 @@
         const response = await fetch("https://potok.cash/member/getmemberdeposits", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ uid: uid, active: 1 }),
+            body: JSON.stringify({ uid: uid, currency: CURRENCY, program: PROGRAM, active: 1 }),
             credentials: "include"
         });
         const data = await response.json();
