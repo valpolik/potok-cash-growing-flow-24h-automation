@@ -56,6 +56,10 @@ https://github.com/valpolik/potok-cash-growing-flow-24h-automation
 
 https://github.com/valpolik/potok-cash-newbie-flow-24h-automation
 
+https://github.com/valpolik/potok-fund-growing-flow-24h-automation
+
+https://github.com/valpolik/potok-fund-newbie-flow-24h-automation
+
 
 ---
 
